@@ -8,7 +8,7 @@ Media support
 """
 __docformat__ = 'restructuredtext'
 
-import os, shutil, re, urllib2, time, tempfile, unicodedata, urllib
+import os, shutil, re, urllib2, time, tempfile, unicodedata, urllib, urlparse
 from anki.db import *
 from anki.utils import checksum, genID
 from anki.lang import _
@@ -134,11 +134,21 @@ def stripMedia(txt):
         txt = re.sub(reg, "", txt)
     return txt
 
+# Try to fix broken URLs by encoding to UTF-8 and then escaping any
+# unsafe octets in the path and query parts.  This method is suggested
+# here:
+#   http://stackoverflow.com/questions/120951/how-can-i-normalize-a-url-in-python
+def urlQuote(url):
+    scheme, netloc, path, query, fragment = urlparse.urlsplit(url.encode("utf-8"))
+    path = urllib.quote(path, '/%')
+    query = urllib.quote_plus(query, ':&=')
+    return urlparse.urlunsplit((scheme, netloc, path, query, fragment))
+
 def escapeImages(string):
     def repl(match):
         return match.group(1).replace(
             match.group(2),
-            urllib.quote(match.group(2).encode("utf-8")))
+            urlQuote(match.group(2)))
     return re.sub(regexps[1], repl, string)
 
 # Rebuilding DB
